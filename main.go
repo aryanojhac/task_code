@@ -37,7 +37,7 @@ func errorMessageIntoText(err error) map[string]string {
 	// Variable stores the errors in it
 	var storeerr validator.ValidationErrors
 	if errors.As(err, &storeerr) {
-		for _, errs := range storeerr {
+		for _, errs := range storeerr { // iteration takes place on the storeerr and check for the error
 			field := errs.Field()
 			tag := errs.Tag()
 
