@@ -24,25 +24,25 @@ var albums = []album{
 }
 
 // Function to print the albums
-func getAlbums(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, albums)
+func getAlbums(ctx *gin.Context) {
+	ctx.IndentedJSON(http.StatusOK, albums)
 }
 
 // Making a function to add the New Album
-func postAlbums(c *gin.Context) {
+func postAlbums(ctx *gin.Context) {
 	var newAlbum album
 
-	if err := c.ShouldBindJSON(&newAlbum); err != nil{
-		var ve validator.ValidationErrors
+	if err := ctx.ShouldBindJSON(&newAlbum); err != nil{
+		var storeerr validator.ValidationErrors
 		if errors,ok := err.(validator.ValidationErrors); ok {
-			ve = errors                                         // storing errors in ve
+			storeerr = errors                                         // storing errors in storeerr
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input fomat"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input format"})
 			return
 		}
 
 		errMessage := map[string]string{}
-		for _,e := range ve{
+		for _,e := range storeerr{
 			field := e.Field()
 			tag := e.Tag()
 
@@ -69,61 +69,61 @@ func postAlbums(c *gin.Context) {
 				errMessage[field] = "Invalid Value"
 			}
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"Validation errors":errMessage})
+		ctx.JSON(http.StatusBadRequest, gin.H{"Validation errors":errMessage})
 		return
 	}
 
 	// appending the new album
 	albums = append(albums, newAlbum)
-	c.IndentedJSON(http.StatusCreated, newAlbum)
+	ctx.IndentedJSON(http.StatusCreated, newAlbum)
 
-	c.IndentedJSON(http.StatusOK, gin.H{"Message": "Added the album successfully!"})
+	ctx.IndentedJSON(http.StatusOK, gin.H{"Message": "Added the album successfully!"})
 }
 
 // searching the album by id
-func getAlbumsByID(c *gin.Context) {
-	id := c.Param("id")
+func getAlbumsByID(ctx *gin.Context) {
+	id := ctx.Param("id")
 
-	for _, a := range albums {
-		if a.ID == id {
-			c.IndentedJSON(http.StatusOK, a)
+	for _, album := range albums {
+		if album.ID == id {
+			ctx.IndentedJSON(http.StatusOK, album)
 			return
 		}
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Invalid album ID"})
+	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Invalid album ID"})
 }
 
-// Function to Remove the album by using it's ID
-func removeAlbums(c *gin.Context) {
-	id := c.Param("id")
+// Function to Remostoreerr the album by using it's ID
+func remostoreerrAlbums(ctx *gin.Context){
+	id := ctx.Param("id")
 
-	for i, a := range albums {
-		if a.ID == id {
+	for i, album := range albums {
+		if album.ID == id {
 			albums = append(albums[:i], albums[i+1:]...)
-			c.IndentedJSON(http.StatusOK, gin.H{
+			ctx.IndentedJSON(http.StatusOK, gin.H{
 				"message": "Deleted Successfully",
 			})
 			return
 		}
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Invalid ID, Album not found"})
+	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Invalid ID, Album not found"})
 }
 
 // Update the existing album
-func newAlbum(c *gin.Context) {
-	id := c.Param("id")
+func newAlbum(ctx *gin.Context) {
+	id := ctx.Param("id")
 	
 	var updateAlbum album
-	if err := c.ShouldBindJSON(&updateAlbum); err != nil {
-		var ve validator.ValidationErrors
+	if err := ctx.ShouldBindJSON(&updateAlbum); err != nil {
+		var storeerr validator.ValidationErrors
 		if errors,ok := err.(validator.ValidationErrors); ok {
-			ve = errors
+			storeerr = errors
 		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input"})
 		}
 	
 	errMessage := map[string]string{}
-	for _,e := range ve{
+	for _,e := range storeerr{
 		field := e.Field()
 		tag := e.Tag()
 
@@ -150,36 +150,36 @@ func newAlbum(c *gin.Context) {
 			errMessage[field] = "Invalid Value"
 		}
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"validation_errors": errMessage})
+	ctx.JSON(http.StatusBadRequest, gin.H{"validation_errors": errMessage})
 	return
 }
 
 	for i, a := range albums {
 		if a.ID == id {
 			albums[i]= updateAlbum
-			c.IndentedJSON(http.StatusOK, albums[i])
+			ctx.IndentedJSON(http.StatusOK, albums[i])
 			return
 		}
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Album not found"})
+	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Album not found"})
 }
 
 func main() {
-	r := gin.Default()
+	router := gin.Default()
 
 	// To see all the entries
-	r.GET("/albums", getAlbums)
-	r.GET("/albums/:id", getAlbumsByID)
+	router.GET("/albums", getAlbums)
+	router.GET("/albums/:id", getAlbumsByID)
 
 	// To add a new album
-	r.POST("/albums", postAlbums)
+	router.POST("/albums", postAlbums)
 
 	// To delete an Album
-	r.DELETE("/albums/:id", removeAlbums)
+	router.DELETE("/albums/:id", remostoreerrAlbums)
 
 	// To update the existing albums
-	r.PUT("/albums/:id", newAlbum)
+	router.PUT("/albums/:id", newAlbum)
 
-	// Running the server
-	r.Run(":8080")
+	// Running the serstoreerrr
+	router.Run(":8080")
 }
