@@ -1,15 +1,19 @@
+// Implimenting Validators with Gin framework
+
 package main
 import(
 	"net/http"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	
 )
 
-// Makin the structure of album
+// Making the structure of album
 type album struct {
-	ID     string  `json:"id"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
+	ID     string  `json:"id" binding:"required"`
+	Title  string  `json:"title" binding:"required"`
+	Artist string  `json:"artist" binding:"required"`
+	Price  float64 `json:"price" binding:"required,lte=90"`
 }
 
 // Giving the data of the struct to the slice variable
@@ -27,7 +31,45 @@ func getAlbums(c *gin.Context) {
 // Making a function to add the New Album
 func postAlbums(c *gin.Context) {
 	var newAlbum album
-	if err := c.BindJSON(&newAlbum); err != nil {
+
+	if err := c.ShouldBindJSON(&newAlbum); err != nil{
+		var ve validator.ValidationErrors
+		if errors,ok := err.(validator.ValidationErrors); ok {
+			ve = errors                                         // storing errors in ve
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input fomat"})
+			return
+		}
+
+		errMessage := map[string]string{}
+		for _,e := range ve{
+			field := e.Field()
+			tag := e.Tag()
+
+			switch field{
+			case "ID":
+				if tag == "required"{
+					errMessage["id"] = "ID is required"
+				}
+			case "Title":
+				if tag == "required"{
+					errMessage["title"] = "Title must be present"
+				}
+			case "Artist":
+				if tag == "required"{
+					errMessage["artist"] = "Artist is required"
+				}
+			case "Price":
+				if tag == "required" {
+					errMessage["price"] = "Invalid Price"
+				} else if tag == "lte" {
+					errMessage["price"] = "Price must be less than or equal to 90"
+				}
+			default:
+				errMessage[field] = "Invalid Value"
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"Validation errors":errMessage})
 		return
 	}
 
@@ -72,15 +114,49 @@ func newAlbum(c *gin.Context) {
 	id := c.Param("id")
 	
 	var updateAlbum album
-	if err := c.BindJSON(&updateAlbum); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Invalid request body"})
-		return
+	if err := c.ShouldBindJSON(&updateAlbum); err != nil {
+		var ve validator.ValidationErrors
+		if errors,ok := err.(validator.ValidationErrors); ok {
+			ve = errors
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input"})
+		}
+	
+	errMessage := map[string]string{}
+	for _,e := range ve{
+		field := e.Field()
+		tag := e.Tag()
+
+		switch field{
+		case "ID": 
+			if tag == "required"{
+				errMessage["id"] = "Invalid ID"	
+			}
+		case "Title":
+			if tag == "required"{
+				errMessage["title"] = "Required an Valid title"
+			}
+		case "Artist":
+			if tag == "required"{
+				errMessage["artist"] = "Artist name is required"
+			}
+		case "Price":
+			if tag == "required" {
+				errMessage["price"] = "Need an valid Price"
+			} else if tag == "lte"{
+				errMessage["price"] = "Price must be less than or equal to 90"
+			}
+		default:
+			errMessage[field] = "Invalid Value"
+		}
 	}
+	c.JSON(http.StatusBadRequest, gin.H{"validation_errors": errMessage})
+	return
+}
+
 	for i, a := range albums {
 		if a.ID == id {
-			albums[i].Title = updateAlbum.Title
-			albums[i].Artist = updateAlbum.Artist
-			albums[i].Price = updateAlbum.Price
+			albums[i]= updateAlbum
 			c.IndentedJSON(http.StatusOK, albums[i])
 			return
 		}
