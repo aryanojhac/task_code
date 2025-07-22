@@ -1,11 +1,13 @@
 // Implimenting Validators with Gin framework
 
 package main
-import(
+
+import (
+	"errors"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	
 )
 
 // Making the structure of album
@@ -28,55 +30,95 @@ func getAlbums(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusOK, albums)
 }
 
+// Function to get the message of error
+func errorMessageIntoText(err error) map[string]string {
+	errorMessage := make(map[string]string)
+
+	// Variable stores the errors in it
+	var storeerr validator.ValidationErrors
+	if errors.As(err, &storeerr) {
+		for _, errs := range storeerr {
+			field := errs.Field()
+			tag := errs.Tag()
+
+			switch field {
+			case "ID":
+				if tag == "required" {
+					errorMessage["id"] = "Id is required"
+				}
+			case "Title":
+				if tag == "required" {
+					errorMessage["title"] = "Title is required"
+				}
+			case "Artist":
+				if tag == "required" {
+					errorMessage["artist"] = "Name of artist is Invalid"
+				}
+			case "Price":
+				if tag == "required" {
+					errorMessage["price"] = "Price is invalid"
+				} else if tag == "lte" {
+					errorMessage["price"] = "Price must be less than or equal to 90"
+				}
+			default:
+				errorMessage[field] = "Invalid Values are given as input"
+			}
+		}
+	} else {
+		errorMessage["errors"] = "Invalid Values are given as input"
+	}
+	return errorMessage
+}
+
 // Making a function to add the New Album
 func postAlbums(ctx *gin.Context) {
 	var newAlbum album
 
-	if err := ctx.ShouldBindJSON(&newAlbum); err != nil{
-		var storeerr validator.ValidationErrors
-		if errors,ok := err.(validator.ValidationErrors); ok {
-			storeerr = errors                                         // storing errors in storeerr
-		} else {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input format"})
-			return
-		}
-
-		errMessage := map[string]string{}
-		for _,e := range storeerr{
-			field := e.Field()
-			tag := e.Tag()
-
-			switch field{
-			case "ID":
-				if tag == "required"{
-					errMessage["id"] = "ID is required"
-				}
-			case "Title":
-				if tag == "required"{
-					errMessage["title"] = "Title must be present"
-				}
-			case "Artist":
-				if tag == "required"{
-					errMessage["artist"] = "Artist is required"
-				}
-			case "Price":
-				if tag == "required" {
-					errMessage["price"] = "Invalid Price"
-				} else if tag == "lte" {
-					errMessage["price"] = "Price must be less than or equal to 90"
-				}
-			default:
-				errMessage[field] = "Invalid Value"
-			}
-		}
-		ctx.JSON(http.StatusBadRequest, gin.H{"Validation errors":errMessage})
+	if err := ctx.ShouldBindJSON(&newAlbum); err != nil {
+		errorMessage := errorMessageIntoText(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": errorMessage})
 		return
 	}
+	// 	if errors,ok := err.(validator.ValidationErrors); ok {
+	// 		storeerr = errors                                         // storing errors in storeerr
+	// 	} else {
+	// 		ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input format"})
+	// 		return
+	// 	}
+	// 	errMessage := map[string]string{}
+	// 	for _,accept := range storeerr{
+	// 		field := accept.Field()
+	// 		tag := accept.Tag()
+	// 		switch field{
+	// 		case "ID":
+	// 			if tag == "required"{
+	// 				errMessage["id"] = "ID is required"
+	// 			}
+	// 		case "Title":
+	// 			if tag == "required"{
+	// 				errMessage["title"] = "Title must be present"
+	// 			}
+	// 		case "Artist":
+	// 			if tag == "required"{
+	// 				errMessage["artist"] = "Artist is required"
+	// 			}
+	// 		case "Price":
+	// 			if tag == "required" {
+	// 				errMessage["price"] = "Invalid Price"
+	// 			} else if tag == "lte" {
+	// 				errMessage["price"] = "Price must be less than or equal to 90"
+	// 			}
+	// 		default:
+	// 			errMessage[field] = "Invalid Value"
+	// 		}
+	// 	}
+	// 	ctx.JSON(http.StatusBadRequest, gin.H{"Validation errors":errMessage})
+	// 	return
+	// }
 
 	// appending the new album
 	albums = append(albums, newAlbum)
 	ctx.IndentedJSON(http.StatusCreated, newAlbum)
-
 	ctx.IndentedJSON(http.StatusOK, gin.H{"Message": "Added the album successfully!"})
 }
 
@@ -93,8 +135,8 @@ func getAlbumsByID(ctx *gin.Context) {
 	ctx.IndentedJSON(http.StatusNotFound, gin.H{"message": "Invalid album ID"})
 }
 
-// Function to Remostoreerr the album by using it's ID
-func remostoreerrAlbums(ctx *gin.Context){
+// Function to storeerr the album by using it's ID
+func removeAlbums(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	for i, album := range albums {
@@ -112,51 +154,51 @@ func remostoreerrAlbums(ctx *gin.Context){
 // Update the existing album
 func newAlbum(ctx *gin.Context) {
 	id := ctx.Param("id")
-	
+
 	var updateAlbum album
 	if err := ctx.ShouldBindJSON(&updateAlbum); err != nil {
-		var storeerr validator.ValidationErrors
-		if errors,ok := err.(validator.ValidationErrors); ok {
-			storeerr = errors
-		} else {
-			ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input"})
-		}
-	
-	errMessage := map[string]string{}
-	for _,e := range storeerr{
-		field := e.Field()
-		tag := e.Tag()
-
-		switch field{
-		case "ID": 
-			if tag == "required"{
-				errMessage["id"] = "Invalid ID"	
-			}
-		case "Title":
-			if tag == "required"{
-				errMessage["title"] = "Required an Valid title"
-			}
-		case "Artist":
-			if tag == "required"{
-				errMessage["artist"] = "Artist name is required"
-			}
-		case "Price":
-			if tag == "required" {
-				errMessage["price"] = "Need an valid Price"
-			} else if tag == "lte"{
-				errMessage["price"] = "Price must be less than or equal to 90"
-			}
-		default:
-			errMessage[field] = "Invalid Value"
-		}
+		errorMessage := errorMessageIntoText(err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"message": errorMessage})
+		// 		var storeerr validator.ValidationErrors
+		// 		if errors,ok := err.(validator.ValidationErrors); ok {
+		// 			storeerr = errors
+		// 		} else {
+		// 			ctx.JSON(http.StatusBadRequest, gin.H{"message":"Invalid Input"})
+		// 		}
+		// 	errMessage := map[string]string{}
+		// 	for _,accept := range storeerr{
+		// 		field := accept.Field()
+		// 		tag := accept.Tag()
+		// 		switch field{
+		// 		case "ID":
+		// 			if tag == "required"{
+		// 				errMessage["id"] = "Invalid ID"
+		// 			}
+		// 		case "Title":
+		// 			if tag == "required"{
+		// 				errMessage["title"] = "Required an Valid title"
+		// 			}
+		// 		case "Artist":
+		// 			if tag == "required"{
+		// 				errMessage["artist"] = "Artist name is required"
+		// 			}
+		// 		case "Price":
+		// 			if tag == "required" {
+		// 				errMessage["price"] = "Need an valid Price"
+		// 			} else if tag == "lte"{
+		// 				errMessage["price"] = "Price must be less than or equal to 90"
+		// 			}
+		// 		default:
+		// 			errMessage[field] = "Invalid Value"
+		// 		}
+		// 	}
+		// 	ctx.JSON(http.StatusBadRequest, gin.H{"validation_errors": errMessage})
+		// 	return
+		// }
 	}
-	ctx.JSON(http.StatusBadRequest, gin.H{"validation_errors": errMessage})
-	return
-}
-
 	for i, a := range albums {
 		if a.ID == id {
-			albums[i]= updateAlbum
+			albums[i] = updateAlbum
 			ctx.IndentedJSON(http.StatusOK, albums[i])
 			return
 		}
@@ -175,7 +217,7 @@ func main() {
 	router.POST("/albums", postAlbums)
 
 	// To delete an Album
-	router.DELETE("/albums/:id", remostoreerrAlbums)
+	router.DELETE("/albums/:id", removeAlbums)
 
 	// To update the existing albums
 	router.PUT("/albums/:id", newAlbum)
